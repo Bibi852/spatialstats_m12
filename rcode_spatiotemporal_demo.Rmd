@@ -1,0 +1,229 @@
+---
+title: "R Code Vignette Attempt 2"
+author: "Abigail Lee"
+output: html_document
+date: "2025-04-06"
+---
+# Spatiotemporal Analysis Using R
+Natural phenomena are rarely randomly distributed as ecological patterns close in space or time are more likely to have similar values.
+Spatiotemporal variograms help quantify and address these similarities in ecological patterns in both space and time. This helps protect against biased model estimates and leads to more accurate predictions when interpolating an ecological pattern for unknown spatial or time points using kriging.
+
+Addressing spatiotemporal autocorrelation is the key to bridging raw ecological measurements and smart quantitative decision-making!
+
+Although I will be using simulated data for this r-code vignette (provided as a resource for this week), the continuous ecological variable (pika stress hormone concentration: `concentration_pg_g`) is based on the open-source dataset `nwt_pikas` from the `lterdatasampler` package in R. I have provided their website with this r-code demonstration and you can explore this dataset further by running the command `data(nwt_pikas, package = "lterdatasampler")` in R. (include context for why pikas stress levels is important in ecological research and policy)
+
+# Preparing Data for Spatiotemporal Variogram Analysis
+So, for this example, I have provided the dataset I am using to you all, but I wanted to go over quickly how you would create or manipulate a given dataset for spatiotemporal analysis. In R specifically, the commands for spatiotemporal variograms/kriging in the `gstat` package only accept `STIDF` or `STFDF` data types. That is, SpatioTemporal Irregular Data Frames and SpatioTemporal Full Data Frames, both of which originate from the `spacetime` package in R (include citation). The sampling grid in `STIDF` is irregular/sparse compared to `STFDF` which is used when we have a regularly sampled, complete grid of space x time combinations - that is, every location has a unique value for every time step. Because we very rarely have access to such "full grid" ecological data in real-world analysis, I will focus on `STIDF` data types for the purpose of this demonstration. 
+When we build an `STIDF`, we combine three main vectors: spatial points, time vectors and the data (observations like stress concentration). Linking these vectors into a single object tells us essentially that a given object occured at a given place at a given time - which we need to determine spatiotemporal autocorrelation and perform further statistical analysis. 
+
+Ok, so this is the r code I used to generate the simulated dataset for this demonstration. For this demonstration, you will need to load the packages `sp`, `spacetime`, `dplyr` (for data cleaning) and `gstat`. 
+```{r}
+library(pacman)
+p_load(sp, spacetime, dplyr, gstat)
+```
+
+
+Of course, I start off by setting a seed for reproducibility. The code used to build the `spatial_points` argument of the `STIDF` is as follows. I made a dataframe for 12 hypothetical sampling stations with UTM (projected) coordinates - which are generally preferred for more interpretable variograms as they are based on Euclidean distances and the Cartesian coordinate system.
+
+
+```{r}
+# setting seed for reproducibility
+set.seed(42)
+
+# 12 stations with UTM coords
+pikas_stations <- data.frame(
+  station = paste0("S", 1:12),
+  x = runif(12, 500000, 510000),      
+  y = runif(12, 4400000, 4410000)     
+)
+
+```
+
+Next, I create the `time_vector` component of the `STIDF` (footnote later), by generating 12 weekly observations per station, starting in May 1st of 2018. 
+```{r}
+#  simulating 12 weekly dates
+pikas_dates <- seq(as.Date("2018-05-01"), by = "1 week", length.out = 12)
+```
+
+I then bind the spatial and temporal components in a grid (long form) and identify the station name for each space x time combination. 
+
+```{r}
+# binding spatial and temporal components into a grid
+pikas_grid <- expand.grid(station = pikas_stations$station, date = pikas_dates)
+pikas_grid_id <- left_join(pikas_grid, pikas_stations, by = "station")
+```
+
+Because I want to demonstrate spatiotemporal autocorrelation in this example, I manually added spatial and time trends to simulate greater stress concentrations in the eastern portions of the study area and increases in stress levels over time. 
+
+```{r}
+
+# adding temporal and spatial trends
+pikas_grid_trend <- pikas_grid_id %>%
+    # number of weeks since first date - smooth increasing value over time for a temporal effect
+  mutate(
+    time_trend = as.numeric(difftime(date, min(date), units = "days")) / 30,
+    # by normalizing the spatial easting (UTM coords) on a scale from 0 to 1 - i create a spatial gradient - so that the more east observations are, there is greater weight for the stress concentration levels - smooth increases by time and space thus
+    space_trend = (x - min(x)) / (max(x) - min(x)),
+    # base level of stress is 3000 pg/g
+    # spatial effect - 300 * space_trend - more east, greater stress
+    # temporal effect - 200 * time_trend - later, greater stress
+    # random noise to be more accurate to real-world data
+    concentration_pg_g = 3000 + 300 * space_trend + 200 * time_trend + rnorm(n(), 0, 100)
+  )
+
+```
+
+Ok, that is really the underlying data I am basing the spatiotemporal analysis on. Now, we need to convert it into a spatial object to get the `sp` object when we run the `STIDF` function and convert the `date` column into a `date` object using the `as.POSIXct` command. 
+
+```{r}
+
+# convert to spatial object
+coordinates(pikas_grid_trend) <- ~x + y
+proj4string(pikas_grid_trend) <- CRS("+proj=utm +zone=13 +datum=WGS84")
+# convert to date object
+pikas_grid_trend$date <- as.POSIXct(pikas_grid_trend$date)
+```
+
+Now, I separate the spatial, temporal and data components of this dataset (footnote here).
+
+```{r}
+# create components (footnote here)
+# sp object
+pikas_sp <- SpatialPoints(pikas_grid_trend@coords, proj4string = CRS("+proj=utm +zone=13 +datum=WGS84"))
+# temporal vectors object
+pikas_tm <- pikas_grid_trend$date
+# df of only the outcome variable
+pikas_df <- data.frame(concentration_pg_g = pikas_grid_trend$concentration_pg_g)
+```
+
+Now, I can simply build the `STIDF` object!
+```{r}
+# Build STIDF
+pikas_stobj <- STIDF(pikas_sp, pikas_tm, pikas_df)
+# i also scale the concentration_pg_g variable because the scale of the variable is very large
+pikas_stobj@data$concentration_pg_g <- scale(pikas_stobj@data$concentration_pg_g)
+
+```
+
+# Computing Empirical Spatiotemporal Variogram
+Ok, now we are ready to compute the empirical spatiotemporal variogram for this simulated data - we estimate semivariance based on the data at various space-time lags - we are not fitting a model yet!
+
+```{r}
+# variogram of raw variable 
+vv <- variogramST(
+  concentration_pg_g ~ 1,
+  # STIDF data to use
+  data = pikas_stobj,
+  # time lags from 0 to 12 weeks apart
+  tlags = 0:12,
+  # spatial distances have chunks of 2000 meters with up to 8000 meters total
+  width = 2000,
+  cutoff = 8000,
+  # time vector in weeks
+  tunit = "weeks"
+)
+```
+
+Now, we plot the spatio-temporal lag map in 2D and then in 3D
+
+```{r}
+plot(vv, map = TRUE)  
+plot(vv, wireframe = T)
+```
+For the 2D plot, we interpret the results as follows: the x-axis (distance) (m) represents spatial lag, and the y-axis represents temporal lag. The third variable, color, is semivariance. Each cell shows how variable the data is at that combination of spatial and temporal lag - darker colors indicate less semivariance and thus indicates the presence of spatotemporal autocorrelation - the bottom-left (low space, low time lag) is the semivariance of observations nearby in both space and time and are seen to have low semivariance, while the top-right cells have high semivariance and are combinations of observations distant to each other both spatially and temporally. 
+
+The 3D variogram surface is based on the same data as above, but in 3D. the Z-axis (the vertical height) is the semivariance, while the x-axis and y-axis still represent spatial and temporal lag respectively. The surface starts low at (0,0) and rises with increasing temporal and spatial lags. We see a steeper rise in the spatial direction compared to the temporal direction where there is a more gentle slope. The surface does not appear curved or twisted diagonally. This suggests space and time are acting independently, which supports a separable model.
+
+(remember to add footnotes later)
+
+# Fitting Spatiotemporal Variogram Models
+The `vgmST` function in `gstat` allows us to construct a spatiotemporal variogram of types `separable`, `metric`, `productSum`, `sumMetric`, and `simpleSumMetric` with only a minimal set of parameters (cite documentation). Each models use a different function to approximate the pattern of spatiotemporal autocorrelation in the data with the goal of telling us how values become less similar as we move through **space** and **time**.
+## Separable model
+The separable variogram assumes independent effects of space and time on the data. Essentially, the final variability is a product of spatial and temporal variograms - it is simple and flexible but does not capture spatiotemporal interactions. 
+
+```{r}
+model_sep <- vgmST("separable",
+                   space = vgm(1, "Exp", 8000, 0.05),
+                   time = vgm(1, "Exp", 4, 0.05), sill = 0.5)
+fit_sep <- fit.StVariogram(vv, model_sep, method = "L-BFGS-B")
+attr(fit_sep, "optim")$value
+```
+
+The separable variogram produces a smooth surface that increases independently in space and time - there are clear vertical and horiziontal planes. 
+
+## Metric Variogram
+In contrast to the separable variogram assuming independent effects of space and time, the metric variogram structure combines space and time into one distance, assumingthat time is a function of space in some way as it includes a ratio (alpha) for anistropy ratio (include footnote). This model is compact and intuitive, but assumes a specific relationship (ratio) between time and space that may not hold true in some cases, so it is important to explore different variogram structures.  
+```{r}
+model_metric <- vgmST("metric",
+                      joint = vgm(1, "Exp", 3000, 0.05),
+                      stAni = 1000)
+fit_metric <- fit.StVariogram(vv, model_metric)
+attr(fit_metric, "optim")$value
+```
+
+in the metric variogram, semivariance increases along a combined space-time path instead of each direction alone. In other words, the metric model treats time as another spatial axis scaled by the parameter `stAni`. This model assumes similarity decays along a spatiotemporal distance rather than separately by space and time.
+
+## `productSum` variogram
+
+The `productSum` model builds from independent semivariance functions for space and time but adds a term that captures how space and time interact, so there is greater flexability than a strictly `separable` model.
+ 
+```{r}
+model_prod <- vgmST("productSum",
+                    space = vgm(1, "Exp", 3000, 0.05),
+                    time = vgm(1, "Exp", 4, 0.05),
+                    k = 0.5)
+fit_prod <- fit.StVariogram(vv, model_prod)
+attr(fit_prod, "optim")$value
+```
+
+## `sumMetric` variogram
+The `sumMetric` model is, as can be derived, based on the metric model that assumes a joint spatiotemporal distance, but adds separate space and time structures like in a separable model as well. This is a very flexible model that can capture how space and time influence data both independently and together. 
+
+```{r}
+model_sumMetric <- vgmST("sumMetric",
+                         space = vgm(1, "Exp", 3000, 0.05),
+                         time = vgm(1, "Exp", 4, 0.05),
+                         joint = vgm(1, "Exp", 3000, 0.05),
+                         stAni = 500)
+fit_sumMetric <- fit.StVariogram(vv, model_sumMetric)
+attr(fit_sumMetric, "optim")$value
+
+```
+
+## `simpleSumMetric` variogram
+
+The `simpleSumMetric` model is a variation of the `sumMetric` model that only includes a single anisotropy term instead of a joint model for added stability in the variance and model fit. Often times, `sumMetric` may not converge well as it requires too many parameters and thus has harder optimization. 
+
+
+
+```{r}
+model_simple <- vgmST("simpleSumMetric",
+                      space = vgm(1, "Exp", 3000, 0.05),
+                      time = vgm(1, "Exp", 4, 0.05),
+                      joint = vgm(1, "Exp", 3000, 0.05),
+                      nugget = 0.05,
+                      stAni = 500)
+fit_simple <- fit.StVariogram(vv, model_simple)
+attr(fit_simple, "optim")$value
+```
+
+# Comparing different variograms
+```{r}
+plot(vv, list(fit_sep, fit_metric, fit_prod, fit_sumMetric, fit_simple))
+
+
+```
+Comparing the empirical variogram to the fitted variogram models (predicted semivariance) 
+```{r}
+
+attr(fit_sep, "optim")$value
+attr(fit_metric, "optim")$value
+attr(fit_prod, "optim")$value
+attr(fit_sumMetric, "optim")$value
+attr(fit_simple, "optim")$value
+
+
+```
+
+Out of the five models tested, the `sumMetric` model has the lowest RMSE and the first `separable` model has the highest RMSE at 0.219. This means that there is some degree of interaction between spatial and temporal similarity - that temporal changes may vary by location and that spatial similarity may change over time. We may conclude that stress concentration levels spread across the landscape over time in a wave structure. Time and space are likely not acting in isolation, so we needed a model with more flexibility than the `separable` variogram to best approximate the semivariance patterns in the data. (add more interpretation later)
+
