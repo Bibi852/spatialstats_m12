@@ -1,5 +1,5 @@
 ---
-title: "R Code Vignette Attempt 2"
+title: "R Code Vignette Personal Notes"
 author: "Abigail Lee"
 output: html_document
 date: "2025-04-06"
@@ -10,7 +10,11 @@ Spatiotemporal variograms help quantify and address these similarities in ecolog
 
 Addressing spatiotemporal autocorrelation is the key to bridging raw ecological measurements and smart quantitative decision-making!
 
-Although I will be using simulated data for this r-code vignette (provided as a resource for this week), the continuous ecological variable (pika stress hormone concentration: `concentration_pg_g`) is based on the open-source dataset `nwt_pikas` from the `lterdatasampler` package in R. I have provided their website with this r-code demonstration and you can explore this dataset further by running the command `data(nwt_pikas, package = "lterdatasampler")` in R. (include context for why pikas stress levels is important in ecological research and policy)
+Although I will be using simulated data for this r-code vignette (provided as a resource for this week), the continuous ecological variable (pika stress hormone concentration: `concentration_pg_g`) is based on the open-source dataset `nwt_pikas` from the `lterdatasampler` package in R. I have provided their website with this r-code demonstration and you can explore this dataset further by running the command `data(nwt_pikas, package = "lterdatasampler")` in R. 
+
+Pikas (Ochotona princeps) are small alpine mammals that are highly sensitive to environmental changes, especially heat and habitat disruption. Because they live in cold, high-elevation ecosystems, they are considered climate-sensitive indicator species.
+
+In recent years, biologists have started measuring glucocorticoid hormone levels (stress hormones, often quantified in pg/g from fecal samples) as a non-invasive way to assess physiological stress in pikas across different regions and time periods. Chronic stress in wildlife can signal habitat degredation, increased predation pressure, and/or climate-related challenges. Tracking stress levels spatially and temporally helps researchers identify which areas are becoming less suitable over time and how pikas are coping with environmental change. In a policy context, such analyses help prioritize protection for high-stress zones, monitor population resilience in the face of climate change, and inform relocation/corridor strategies for vulnerable populations. 
 
 # Preparing Data for Spatiotemporal Variogram Analysis
 So, for this example, I have provided the dataset I am using to you all, but I wanted to go over quickly how you would create or manipulate a given dataset for spatiotemporal analysis. In R specifically, the commands for spatiotemporal variograms/kriging in the `gstat` package only accept `STIDF` or `STFDF` data types. That is, SpatioTemporal Irregular Data Frames and SpatioTemporal Full Data Frames, both of which originate from the `spacetime` package in R (include citation). The sampling grid in `STIDF` is irregular/sparse compared to `STFDF` which is used when we have a regularly sampled, complete grid of space x time combinations - that is, every location has a unique value for every time step. Because we very rarely have access to such "full grid" ecological data in real-world analysis, I will focus on `STIDF` data types for the purpose of this demonstration. 
@@ -134,6 +138,10 @@ For the 2D plot, we interpret the results as follows: the x-axis (distance) (m) 
 
 The 3D variogram surface is based on the same data as above, but in 3D. the Z-axis (the vertical height) is the semivariance, while the x-axis and y-axis still represent spatial and temporal lag respectively. The surface starts low at (0,0) and rises with increasing temporal and spatial lags. We see a steeper rise in the spatial direction compared to the temporal direction where there is a more gentle slope. The surface does not appear curved or twisted diagonally. This suggests space and time are acting independently, which supports a separable model.
 
+I can actually create nicer looking, formatted 3D plots using the package `lattice`. Here, i show a few basic options for formatting 3D variogram plots such as setting labels for each axis. This is entirely optional, but I include it just for reference if any of you are curious.
+
+For interactive plots, you can also try using `plotly`.
+
 (remember to add footnotes later)
 
 # Fitting Spatiotemporal Variogram Models
@@ -150,6 +158,9 @@ attr(fit_sep, "optim")$value
 ```
 
 The separable variogram produces a smooth surface that increases independently in space and time - there are clear vertical and horiziontal planes. 
+When using smaller bin widths (e.g., 2000), the empirical variogram captures more detailed variation across short spatial lags. But this makes it harder for simpler models like separable to achieve a good fit, resulting in a higher RMSE.
+With coarser binning (e.g., 8000), the surface smooths out, and the separable model performs better numerically — but may miss finer-scale patterns.
+
 
 ## Metric Variogram
 In contrast to the separable variogram assuming independent effects of space and time, the metric variogram structure combines space and time into one distance, assumingthat time is a function of space in some way as it includes a ratio (alpha) for anistropy ratio (include footnote). This model is compact and intuitive, but assumes a specific relationship (ratio) between time and space that may not hold true in some cases, so it is important to explore different variogram structures.  
@@ -210,8 +221,6 @@ attr(fit_simple, "optim")$value
 # Comparing different variograms
 ```{r}
 plot(vv, list(fit_sep, fit_metric, fit_prod, fit_sumMetric, fit_simple))
-
-
 ```
 Comparing the empirical variogram to the fitted variogram models (predicted semivariance) 
 ```{r}
