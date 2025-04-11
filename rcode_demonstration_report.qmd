@@ -25,12 +25,11 @@ Although I will be using simulated data for this r-code vignette (provided as a 
 
 This R-code vignette is based on the following open-source resources on spatiotemporal variograms and spatiotemporal data analysis in R.
 
-- Spatio-temporal variography using `air` sample data from `spacetime` - [https://cran.r-project.org/web/packages/gstat/vignettes/st.pdf](https://cran.r-project.org/web/packages/gstat/vignettes/st.pdf)
+-   Spatio-temporal variography using `air` sample data from `spacetime` - <https://cran.r-project.org/web/packages/gstat/vignettes/st.pdf>
 
-- Transforming data into a `STIDF` object - [https://www.r-bloggers.com/2015/08/spatio-temporal-kriging-in-r/](https://www.r-bloggers.com/2015/08/spatio-temporal-kriging-in-r/)
+-   Transforming data into a `STIDF` object - <https://www.r-bloggers.com/2015/08/spatio-temporal-kriging-in-r/>
 
-- More on `STIDF` objects, and a whole chapter on Spatio-Temporal analysis in R more broadly - [https://gdsl-ul.github.io/san/10-st_analysis.html](https://gdsl-ul.github.io/san/10-st_analysis.html)
-
+-   More on `STIDF` objects, and a whole chapter on Spatio-Temporal analysis in R more broadly - <https://gdsl-ul.github.io/san/10-st_analysis.html>
 
 # Preparing Dataset
 
@@ -60,11 +59,11 @@ set.seed(42)
 # 12 stations with UTM coords
 pikas_stations <- data.frame(
     # identifiers of stations
-  station = paste0("S", 1:12),
+  station = paste0("S", 1:15),
   # x coordinates (easting)
-  x = runif(12, 500000, 510000), 
+  x = runif(15, 500000, 550000), 
   # y coordinates (northing)
-  y = runif(12, 4400000, 4410000)     
+  y = runif(15, 4400000, 4500000)     
 )
 
 ```
@@ -90,18 +89,21 @@ pikas_grid_id <- left_join(pikas_grid, pikas_stations, by = "station")
 
 # adding temporal and spatial trends
 pikas_grid_trend <- pikas_grid_id %>%
-    # number of weeks since first date - smooth increasing value over time for a temporal effect
-  mutate(
+    mutate(
+    # Normalized trends
+    space_trend = ((x - min(x)) + (y - min(y))) / 
+                  ((max(x) - min(x)) + (max(y) - min(y))),
     time_trend = as.numeric(difftime(date, min(date), units = "days")) / 30,
-    # by normalizing the spatial easting (UTM coords) on a scale from 0 to 1 - i create a spatial gradient - so that the more east observations are, there is greater weight for the stress concentration levels - smooth increases by time and space thus
-    space_trend = (x - min(x)) / (max(x) - min(x)),
-    # base level of stress is 3000 pg/g
-    # spatial effect - 300 * space_trend - more east, greater stress
-    # temporal effect - 200 * time_trend - later, greater stress
-    # random noise to be more accurate to real-world data
-    concentration_pg_g = 3000 + 300 * space_trend + 200 * time_trend + rnorm(n(), 0, 100)
+
+    # Add realistic spatiotemporal autocorrelation pattern
+    concentration_pg_g = 3000 +
+                         200 * space_trend +     # STRONGER spatial effect
+                         100 * time_trend +      # Still strong temporal effect
+                         100 * space_trend * time_trend +  # add interaction term
+                         rnorm(n(), 0, 500)       # random noise
   )
 
+write.csv(pikas_grid_trend, "pikas_grid_trend.csv")
 ```
 
 ## Final Steps
@@ -139,8 +141,8 @@ pikas_df <- data.frame(concentration_pg_g = pikas_grid_trend$concentration_pg_g)
 ```{r}
 # create STIDF
 pikas_stobj <- STIDF(pikas_sp, pikas_tm, pikas_df)
-# i also scale the concentration_pg_g variable because the scale of the variable is very large
-pikas_stobj@data$concentration_pg_g <- scale(pikas_stobj@data$concentration_pg_g)
+# i also scale the concentration_pg_g variable as the log of concentration_pg_g
+pikas_stobj@data$concentration_pg_g <- log(pikas_stobj@data$concentration_pg_g +1)
 
 ```
 
@@ -152,12 +154,10 @@ pikas_vv <- variogramST(
   concentration_pg_g ~ 1,
   # STIDF data to use
   data = pikas_stobj,
-  # time lags from 0 to 12 weeks apart
+  width=5000,
+  
+  
   tlags = 0:12,
-  # spatial distances have chunks of 2000 meters
-  width = 2000,
-  cutoff = 9000,
-  # time vector in weeks
   tunit = "weeks"
 )
 ```
@@ -242,6 +242,7 @@ plot_ly(
 # Fitting Spatiotemporal Variogram Models
 
 ## Separable - simple, stable, no interaction term
+
 ```{r}
 # separable model
 model_sep <- vgmST("separable",
@@ -261,7 +262,9 @@ model_metric <- vgmST("metric",
 fit_metric <- fit.StVariogram(pikas_vv, model_metric)
 attr(fit_metric, "optim")$value
 ```
+
 ## Product Sum - space, time and a cross term
+
 ```{r}
 # product sum model
 model_prod <- vgmST("productSum",
@@ -301,10 +304,13 @@ attr(fit_simple, "optim")$value
 ```
 
 # Comparing different variograms
+
 ```{r}
 plot(pikas_vv, list(fit_sep, fit_metric, fit_prod, fit_sumMetric, fit_simple), wireframe = T)
 ```
-Comparing the empirical variogram to the fitted variogram models (predicted semivariance) 
+
+Comparing the empirical variogram to the fitted variogram models (predicted semivariance)
+
 ```{r}
 
 attr(fit_sep, "optim")$value
@@ -315,9 +321,3 @@ attr(fit_simple, "optim")$value
 
 
 ```
-
-
-
-
-
-
