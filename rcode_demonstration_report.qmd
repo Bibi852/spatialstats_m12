@@ -54,16 +54,16 @@ p_load(sp, spacetime, dplyr, gstat, lattice)
 
 ```{r}
 # setting seed for reproducibility
-set.seed(42)
+set.seed(41)
 
 # 12 stations with UTM coords
 pikas_stations <- data.frame(
     # identifiers of stations
-  station = paste0("S", 1:15),
+  station = paste0("S", 1:10),
   # x coordinates (easting)
-  x = runif(15, 500000, 550000), 
+  x = runif(10, 500000, 550000), 
   # y coordinates (northing)
-  y = runif(15, 4400000, 4500000)     
+  y = runif(10, 4400000, 4500000)     
 )
 
 ```
@@ -72,7 +72,7 @@ pikas_stations <- data.frame(
 
 ```{r}
 #  simulating 12 weekly dates
-pikas_dates <- seq(as.Date("2018-05-01"), by = "1 week", length.out = 12)
+pikas_dates <- seq(as.Date("2018-05-01"), by = "1 week", length.out = 5)
 ```
 
 ## Long-format grid of station x time
@@ -91,16 +91,21 @@ pikas_grid_id <- left_join(pikas_grid, pikas_stations, by = "station")
 pikas_grid_trend <- pikas_grid_id %>%
     mutate(
     # Normalized trends
-    space_trend = ((x - min(x)) + (y - min(y))) / 
-                  ((max(x) - min(x)) + (max(y) - min(y))),
-    time_trend = as.numeric(difftime(date, min(date), units = "days")) / 30,
+    space_trend = sqrt((x - min(x))^2 + (y - min(y))^2),
+    
+    space_trend_scaled = space_trend / max(space_trend),
+    space_trend_scaled = space_trend_scaled + rnorm(n(), 0, 0.1),
+    
+    time_trend = as.numeric(difftime(date, min(date), units = "weeks")) + rnorm(n(), 0, 0.3),
+    time_trend_scaled = time_trend / max(time_trend),
+    
 
-    # Add realistic spatiotemporal autocorrelation pattern
     concentration_pg_g = 3000 +
-                         200 * space_trend +     # STRONGER spatial effect
-                         100 * time_trend +      # Still strong temporal effect
-                         100 * space_trend * time_trend +  # add interaction term
-                         rnorm(n(), 0, 500)       # random noise
+      1200 * space_trend_scaled^2 +       # squared: makes semivariance rise fast
+      700 * time_trend_scaled^2 +        # same for time
+      rnorm(n(), 0, 10) 
+
+                      # random noise
   )
 
 write.csv(pikas_grid_trend, "pikas_grid_trend.csv")
@@ -141,8 +146,7 @@ pikas_df <- data.frame(concentration_pg_g = pikas_grid_trend$concentration_pg_g)
 ```{r}
 # create STIDF
 pikas_stobj <- STIDF(pikas_sp, pikas_tm, pikas_df)
-# i also scale the concentration_pg_g variable as the log of concentration_pg_g
-pikas_stobj@data$concentration_pg_g <- log(pikas_stobj@data$concentration_pg_g +1)
+pikas_stobj@data$concentration_pg_g <- (pikas_stobj@data$concentration_pg_g)/1000
 
 ```
 
@@ -157,8 +161,10 @@ pikas_vv <- variogramST(
   width=5000,
   
   
-  tlags = 0:12,
-  tunit = "weeks"
+  tlags = 0:5,
+  tunit = "weeks",
+  na.omit = T
+  
 )
 ```
 
@@ -180,8 +186,6 @@ plot(pikas_vv, wireframe = T)
     -   x-axis: spatial lag, y-axis: temporal lag
     -   z-axis: semivariance (height)
     -   surface rises with lag
-    -   steeper rise in space: stronger spatial autocorrelation (as defined when creating spatiotemporal trends)
-    -   gentler rise in time (weaker temporal autocorrelation)
     -   no diagonal twist - suggests that space and time should act independently?
 
 ```{r}
@@ -206,6 +210,7 @@ wireframe(
 
 ```{r}
 library(plotly)
+library(tidyverse)
 # plotly needs a complete rectangular matrix for the 3D variogram
 pikas_plotly <- as.data.frame(pikas_vv) %>%
   select(spacelag, timelag, gamma) %>%
@@ -246,8 +251,8 @@ plot_ly(
 ```{r}
 # separable model
 model_sep <- vgmST("separable",
-                   space = vgm(1, "Exp", 2000, 0.05),
-                   time = vgm(1, "Exp", 4, 0.05), sill = 0.5)
+                   space = vgm(1, "Exp", 5000, 0.1),
+                   time = vgm(1, "Exp", 2, 0.1), sill = 1)
 fit_sep <- fit.StVariogram(pikas_vv, model_sep, method = "L-BFGS-B")
 attr(fit_sep, "optim")$value
 ```
@@ -257,8 +262,8 @@ attr(fit_sep, "optim")$value
 ```{r}
 # metric models
 model_metric <- vgmST("metric",
-                      joint = vgm(1, "Exp", 2000, 0.05),
-                      stAni = 1000)
+                      joint = vgm(1, "Exp", 5000, 0.1),
+                      stAni =1000)
 fit_metric <- fit.StVariogram(pikas_vv, model_metric)
 attr(fit_metric, "optim")$value
 ```
@@ -268,8 +273,8 @@ attr(fit_metric, "optim")$value
 ```{r}
 # product sum model
 model_prod <- vgmST("productSum",
-                    space = vgm(1, "Exp", 2000, 0.05),
-                    time = vgm(1, "Exp", 4, 0.05),
+                    space = vgm(1, "Exp", 5000, 0.1),
+                    time = vgm(1, "Exp", 2, 0.1),
                     k = 0.5)
 fit_prod <- fit.StVariogram(pikas_vv, model_prod)
 attr(fit_prod, "optim")$value
@@ -280,9 +285,9 @@ attr(fit_prod, "optim")$value
 ```{r}
 # sum metric model
 model_sumMetric <- vgmST("sumMetric",
-                         space = vgm(1, "Exp", 2000, 0.05),
-                         time = vgm(1, "Exp", 4, 0.05),
-                         joint = vgm(1, "Exp", 2000, 0.05),
+                         space = vgm(1, "Exp", 5000, 0.1),
+                         time = vgm(1, "Exp", 2, 0.1),
+                         joint = vgm(1, "Exp", 5000, 0.1),
                          stAni = 1000)
 fit_sumMetric <- fit.StVariogram(pikas_vv, model_sumMetric)
 attr(fit_sumMetric, "optim")$value
@@ -294,9 +299,9 @@ attr(fit_sumMetric, "optim")$value
 ```{r}
 # simple sum metric model
 model_simple <- vgmST("simpleSumMetric",
-                      space = vgm(1, "Exp", 2000, 0.05),
-                      time = vgm(1, "Exp", 4, 0.05),
-                      joint = vgm(1, "Exp", 2000, 0.05),
+                      space = vgm(1, "Exp", 5000, 0.1),
+                      time = vgm(1, "Exp", 2, 0.1),
+                      joint = vgm(1, "Exp", 5000, 0.1),
                       nugget = 0.05,
                       stAni = 1000)
 fit_simple <- fit.StVariogram(pikas_vv, model_simple)
@@ -306,7 +311,12 @@ attr(fit_simple, "optim")$value
 # Comparing different variograms
 
 ```{r}
-plot(pikas_vv, list(fit_sep, fit_metric, fit_prod, fit_sumMetric, fit_simple), wireframe = T)
+# separable model captures the sample variogram quite nicely, however it doesnt capture the variable spikes in semivariance at high time lags, the steeper slope (temporal lags) of the sum/sumMetric/simpleSumMetric models helps capture this and thus have lower RMSEs. However, these models don't seem to capture spatial variation in semivariance at each time lag as well - the rise in semivariance is more gentle. Keep in mind I also added random noise in a few places when creating this simulated data. 
+plot(pikas_vv, list(fit_sep, fit_metric, fit_prod, fit_sumMetric, fit_simple), 
+     wireframe = T, zlim = c(0, 0.3),
+     zlab = NULL, xlab = list("distance (m)", rot = 30),
+     ylab = list("time lag (weeks)", rot = 35),
+     scales = list(arrows = F, z = list(distance = 5)))
 ```
 
 Comparing the empirical variogram to the fitted variogram models (predicted semivariance)
