@@ -5,10 +5,10 @@ output: html_document
 date: "2025-04-06"
 ---
 # Spatiotemporal Analysis Using R
-Natural phenomena are rarely randomly distributed as ecological patterns close in space or time are more likely to have similar values.
+Natural phenomena are rarely randomly distributed as ecological patterns close in space or time are more likely to have similar values. 
 Spatiotemporal variograms help quantify and address these similarities in ecological patterns in both space and time. This helps protect against biased model estimates and leads to more accurate predictions when interpolating an ecological pattern for unknown spatial or time points using kriging.
 
-Addressing spatiotemporal autocorrelation is the key to bridging raw ecological measurements and smart quantitative decision-making!
+Addressing spatiotemporal autocorrelation is the key to bridging raw ecological measurements and smart quantitative decision-making! While there are so many different topics in this field as Cyd mentions in the presentation for this week, I thought this would be a good opportunity to expand our learning about sample/fitted variograms so far as they apply to semivariance by spatial and temporal distance. 
 
 Although I will be using simulated data for this r-code vignette (provided as a resource for this week), the continuous ecological variable (pika stress hormone concentration: `concentration_pg_g`) is based on the open-source dataset `nwt_pikas` from the `lterdatasampler` package in R. I have provided their website with this r-code demonstration and you can explore this dataset further by running the command `data(nwt_pikas, package = "lterdatasampler")` in R. 
 
@@ -176,7 +176,11 @@ in the metric variogram, semivariance increases along a combined space-time path
 
 ## `productSum` variogram
 
+
+
 The `productSum` model builds from independent semivariance functions for space and time but adds a term that captures how space and time interact, so there is greater flexability than a strictly `separable` model.
+
+
  
 ```{r}
 model_prod <- vgmST("productSum",
@@ -188,6 +192,14 @@ attr(fit_prod, "optim")$value
 ```
 
 ## `sumMetric` variogram
+
+::: {.column-margin}
+##### `sumMetric` Semivariance Function
+
+$\gamma(h, u) = \gamma_s(h) + \gamma_t(u) + \gamma_{st}\left( \sqrt{h^2 + (\alpha u)^2} \right)$
+
+:::
+
 The `sumMetric` model is, as can be derived, based on the metric model that assumes a joint spatiotemporal distance, but adds separate space and time structures like in a separable model as well. This is a very flexible model that can capture how space and time influence data both independently and together. 
 
 ```{r}
@@ -202,6 +214,13 @@ attr(fit_sumMetric, "optim")$value
 ```
 
 ## `simpleSumMetric` variogram
+
+::: {.column-margin}
+##### `simpleSumMetric` Semivariance Function
+
+$\gamma(h, u) = \gamma_s(h) + \gamma_t(u) + \gamma\left( \sqrt{h^2 + (\alpha u)^2} \right)$
+
+:::
 
 The `simpleSumMetric` model is a variation of the `sumMetric` model that only includes a single anisotropy term instead of a joint model for added stability in the variance and model fit. Often times, `sumMetric` may not converge well as it requires too many parameters and thus has harder optimization. 
 

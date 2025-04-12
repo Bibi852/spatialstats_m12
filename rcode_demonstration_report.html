@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.43">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Abigail Lee">
+<meta name="dcterms.date" content="2025-04-11">
+
+<title>Module 12: Spatiotemporal Semivariogram Vignette</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="rcode_demonstration_report_files/libs/clipboard/clipboard.min.js"></script>
+<script src="rcode_demonstration_report_files/libs/quarto-html/quarto.js"></script>
+<script src="rcode_demonstration_report_files/libs/quarto-html/popper.min.js"></script>
+<script src="rcode_demonstration_report_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="rcode_demonstration_report_files/libs/quarto-html/anchor.min.js"></script>
+<link href="rcode_demonstration_report_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="rcode_demonstration_report_files/libs/quarto-html/quarto-syntax-highlighting-d4d76bf8491c20bad77d141916dc28e1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="rcode_demonstration_report_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="rcode_demonstration_report_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="rcode_demonstration_report_files/libs/bootstrap/bootstrap-ad79a96903d41e1ce8b2f22af6dfe36a.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="rcode_demonstration_report_files/libs/htmltools-fill-0.5.8.1/fill.css" rel="stylesheet">
+<script src="rcode_demonstration_report_files/libs/htmlwidgets-1.6.4/htmlwidgets.js"></script>
+<script src="rcode_demonstration_report_files/libs/plotly-binding-4.10.4/plotly.js"></script>
+<script src="rcode_demonstration_report_files/libs/typedarray-0.1/typedarray.min.js"></script>
+<script src="rcode_demonstration_report_files/libs/jquery-3.5.1/jquery.min.js"></script>
+<link href="rcode_demonstration_report_files/libs/crosstalk-1.2.1/css/crosstalk.min.css" rel="stylesheet">
+<script src="rcode_demonstration_report_files/libs/crosstalk-1.2.1/js/crosstalk.min.js"></script>
+<link href="rcode_demonstration_report_files/libs/plotly-htmlwidgets-css-2.11.1/plotly-htmlwidgets.css" rel="stylesheet">
+<script src="rcode_demonstration_report_files/libs/plotly-main-2.11.1/plotly-latest.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#spatiotemporal-semivariograms-using-r" id="toc-spatiotemporal-semivariograms-using-r" class="nav-link active" data-scroll-target="#spatiotemporal-semivariograms-using-r"><span class="header-section-number">1</span> Spatiotemporal Semivariograms Using R</a></li>
+  <li><a href="#resources" id="toc-resources" class="nav-link" data-scroll-target="#resources"><span class="header-section-number">2</span> Resources</a></li>
+  <li><a href="#preparing-dataset" id="toc-preparing-dataset" class="nav-link" data-scroll-target="#preparing-dataset"><span class="header-section-number">3</span> Preparing Dataset</a>
+  <ul class="collapse">
+  <li><a href="#import-libraries" id="toc-import-libraries" class="nav-link" data-scroll-target="#import-libraries"><span class="header-section-number">3.1</span> Import libraries</a></li>
+  <li><a href="#simulated-dataset" id="toc-simulated-dataset" class="nav-link" data-scroll-target="#simulated-dataset"><span class="header-section-number">3.2</span> Simulated Dataset</a></li>
+  <li><a href="#weekly-time-points-may-july-2018" id="toc-weekly-time-points-may-july-2018" class="nav-link" data-scroll-target="#weekly-time-points-may-july-2018"><span class="header-section-number">3.3</span> 12 Weekly time points (May-July 2018)</a></li>
+  <li><a href="#long-format-grid-of-station-x-time" id="toc-long-format-grid-of-station-x-time" class="nav-link" data-scroll-target="#long-format-grid-of-station-x-time"><span class="header-section-number">3.4</span> Long-format grid of station x time</a></li>
+  <li><a href="#adds-spatial-and-temporal-trends-to-simulate-autocorrelation" id="toc-adds-spatial-and-temporal-trends-to-simulate-autocorrelation" class="nav-link" data-scroll-target="#adds-spatial-and-temporal-trends-to-simulate-autocorrelation"><span class="header-section-number">3.5</span> Adds spatial and temporal trends to simulate autocorrelation</a></li>
+  <li><a href="#final-steps" id="toc-final-steps" class="nav-link" data-scroll-target="#final-steps"><span class="header-section-number">3.6</span> Final Steps</a>
+  <ul class="collapse">
+  <li><a href="#convert-station-coordinates-to-spatialpoints-object" id="toc-convert-station-coordinates-to-spatialpoints-object" class="nav-link" data-scroll-target="#convert-station-coordinates-to-spatialpoints-object"><span class="header-section-number">3.6.1</span> Convert station coordinates to <code>SpatialPoints</code> object</a></li>
+  <li><a href="#convert-temporal-object-to-posixct" id="toc-convert-temporal-object-to-posixct" class="nav-link" data-scroll-target="#convert-temporal-object-to-posixct"><span class="header-section-number">3.6.2</span> Convert temporal object to <code>POSIXct</code></a></li>
+  <li><a href="#extract-spatial-temporal-and-data-components" id="toc-extract-spatial-temporal-and-data-components" class="nav-link" data-scroll-target="#extract-spatial-temporal-and-data-components"><span class="header-section-number">3.6.3</span> Extract spatial, temporal and data components</a></li>
+  <li><a href="#combine-using-stidfsp-time-data" id="toc-combine-using-stidfsp-time-data" class="nav-link" data-scroll-target="#combine-using-stidfsp-time-data"><span class="header-section-number">3.6.4</span> Combine using <code>STIDF(sp, time, data)</code></a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#computing-empirical-spatiotemporal-variogram" id="toc-computing-empirical-spatiotemporal-variogram" class="nav-link" data-scroll-target="#computing-empirical-spatiotemporal-variogram"><span class="header-section-number">4</span> Computing Empirical Spatiotemporal Variogram</a>
+  <ul class="collapse">
+  <li><a href="#plotting-variogram-in-2d-and-3d" id="toc-plotting-variogram-in-2d-and-3d" class="nav-link" data-scroll-target="#plotting-variogram-in-2d-and-3d"><span class="header-section-number">4.1</span> Plotting variogram in 2D and 3D</a></li>
+  </ul></li>
+  <li><a href="#fitting-spatiotemporal-variogram-models" id="toc-fitting-spatiotemporal-variogram-models" class="nav-link" data-scroll-target="#fitting-spatiotemporal-variogram-models"><span class="header-section-number">5</span> Fitting Spatiotemporal Variogram Models</a>
+  <ul class="collapse">
+  <li><a href="#separable---simple-stable-no-interaction-term" id="toc-separable---simple-stable-no-interaction-term" class="nav-link" data-scroll-target="#separable---simple-stable-no-interaction-term"><span class="header-section-number">5.1</span> Separable - simple, stable, no interaction term</a></li>
+  <li><a href="#metric---single-spatiotemporal-distance" id="toc-metric---single-spatiotemporal-distance" class="nav-link" data-scroll-target="#metric---single-spatiotemporal-distance"><span class="header-section-number">5.2</span> Metric - single spatiotemporal distance</a></li>
+  <li><a href="#product-sum---space-time-and-a-cross-term" id="toc-product-sum---space-time-and-a-cross-term" class="nav-link" data-scroll-target="#product-sum---space-time-and-a-cross-term"><span class="header-section-number">5.3</span> Product Sum - space, time and a cross term</a></li>
+  <li><a href="#summetric---space-time-and-joint-functions" id="toc-summetric---space-time-and-joint-functions" class="nav-link" data-scroll-target="#summetric---space-time-and-joint-functions"><span class="header-section-number">5.4</span> sumMetric - space, time and joint functions</a></li>
+  <li><a href="#simplesummetric---simplified-summetric" id="toc-simplesummetric---simplified-summetric" class="nav-link" data-scroll-target="#simplesummetric---simplified-summetric"><span class="header-section-number">5.5</span> simpleSumMetric - simplified sumMetric</a></li>
+  </ul></li>
+  <li><a href="#comparing-different-variograms" id="toc-comparing-different-variograms" class="nav-link" data-scroll-target="#comparing-different-variograms"><span class="header-section-number">6</span> Comparing different variograms</a>
+  <ul class="collapse">
+  <li><a href="#model-results" id="toc-model-results" class="nav-link" data-scroll-target="#model-results"><span class="header-section-number">6.0.1</span> Model Results</a></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
+<main class="content page-columns page-full" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Module 12: Spatiotemporal Semivariogram Vignette</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Abigail Lee </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">April 11, 2025</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="spatiotemporal-semivariograms-using-r" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Spatiotemporal Semivariograms Using R</h1>
+<ul>
+<li>Spatiotemporal autocorrelation is common in real-world ecological data
+<ul>
+<li>Ecological patterns are rarely random — close values in space/time tend to be similar.</li>
+</ul></li>
+<li>Why spatiotemporal variograms?
+<ul>
+<li>They help us measure how similarity decreases with distance and time.</li>
+<li>Avoids bias in model estimates and is essential for accurate interpolation.</li>
+</ul></li>
+</ul>
+<div class="line-block">Better predictions lead to higher quality research and decision-making. Spatiotemporal autocorrelation modelling turns raw data into actionable insights for environmental/ecological policy!</div>
+<div class="callout callout-style-default callout-note callout-titled" title="Data For Vignette">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Data For Vignette
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Although I will be using simulated data for this r-code vignette (provided as a resource for this week), the continuous ecological variable (pika stress hormone concentration: <code>concentration_pg_g</code>) is based on the open-source dataset <code>nwt_pikas</code> from the <code>lterdatasampler</code> package in R. I have <a href="https://lter.github.io/lterdatasampler/articles/nwt_pikas_vignette.html">provided their website with this r-code demonstration</a> and you can explore this dataset further by running the command <code>data(nwt_pikas, package = "lterdatasampler")</code> in R.</p>
+</div>
+</div>
+</section>
+<section id="resources" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Resources</h1>
+<p>This R-code vignette is based on the following open-source resources on spatiotemporal variograms and spatiotemporal data analysis in R.</p>
+<ul>
+<li><p>Spatio-temporal variography using <code>air</code> sample data from <code>spacetime</code> - <a href="https://cran.r-project.org/web/packages/gstat/vignettes/st.pdf" class="uri">https://cran.r-project.org/web/packages/gstat/vignettes/st.pdf</a></p></li>
+<li><p>Transforming data into a <code>STIDF</code> object - <a href="https://www.r-bloggers.com/2015/08/spatio-temporal-kriging-in-r/" class="uri">https://www.r-bloggers.com/2015/08/spatio-temporal-kriging-in-r/</a></p></li>
+<li><p>More on <code>STIDF</code> objects, and a whole chapter on Spatio-Temporal analysis in R more broadly - <a href="https://gdsl-ul.github.io/san/10-st_analysis.html" class="uri">https://gdsl-ul.github.io/san/10-st_analysis.html</a></p></li>
+<li><p>Applied geostatistics exerpt on Spatio-temporal geostatistics - in addition to semivariograms, also covers kriging and temporal autocorrelation! I also used this resource to format the LaTex equations for the semivariance functions! <a href="https://www.css.cornell.edu/faculty/dgr2/_static/files/R_PDF/exC.pdf" class="uri">https://www.css.cornell.edu/faculty/dgr2/_static/files/R_PDF/exC.pdf</a></p></li>
+<li><p>Another ecological study comparing different semivariogram structures - <a href="https://doi.org/10.1111/tgis.12596" class="uri">https://doi.org/10.1111/tgis.12596</a></p></li>
+</ul>
+</section>
+<section id="preparing-dataset" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Preparing Dataset</h1>
+<ul>
+<li><code>gstat</code> requires <code>STIDF</code> or <code>STFDF</code> for spatiotemporal modeling (from the <code>spacetime</code> package)
+<ul>
+<li><code>STFDF</code> - full grid (every station x every time step) - rare in ecological data</li>
+<li><code>STIDF</code> - irregular grid - more realistic for field observations</li>
+</ul></li>
+<li><code>STIDF</code> object:
+<ul>
+<li><code>SpatialPoints</code> object (coordinates)</li>
+<li>Time vector (<code>POSIXct</code>)</li>
+<li>Data frame (e.g., <code>concentration_pg_g</code>)</li>
+</ul></li>
+</ul>
+<section id="import-libraries" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="import-libraries"><span class="header-section-number">3.1</span> Import libraries</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># import necessary libraries</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pacman)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">p_load</span>(sp, spacetime, dplyr, gstat, lattice)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="simulated-dataset" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="simulated-dataset"><span class="header-section-number">3.2</span> Simulated Dataset</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># setting seed for reproducibility</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">41</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 10 stations with UTM coords</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>pikas_stations <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># identifiers of stations</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">station =</span> <span class="fu">paste0</span>(<span class="st">"S"</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>),</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># x coordinates (easting)</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> <span class="fu">runif</span>(<span class="dv">10</span>, <span class="dv">500000</span>, <span class="dv">550000</span>), </span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  <span class="co"># y coordinates (northing)</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> <span class="fu">runif</span>(<span class="dv">10</span>, <span class="dv">4400000</span>, <span class="dv">4500000</span>)     </span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="weekly-time-points-may-july-2018" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="weekly-time-points-may-july-2018"><span class="header-section-number">3.3</span> 12 Weekly time points (May-July 2018)</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">#  simulating 5 weekly dates</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>pikas_dates <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="fu">as.Date</span>(<span class="st">"2018-05-01"</span>), <span class="at">by =</span> <span class="st">"1 week"</span>, <span class="at">length.out =</span> <span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="long-format-grid-of-station-x-time" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="long-format-grid-of-station-x-time"><span class="header-section-number">3.4</span> Long-format grid of station x time</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># binding spatial and temporal components into a grid</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>pikas_grid <span class="ot">&lt;-</span> <span class="fu">expand.grid</span>(<span class="at">station =</span> pikas_stations<span class="sc">$</span>station, <span class="at">date =</span> pikas_dates)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>pikas_grid_id <span class="ot">&lt;-</span> <span class="fu">left_join</span>(pikas_grid, pikas_stations, <span class="at">by =</span> <span class="st">"station"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="adds-spatial-and-temporal-trends-to-simulate-autocorrelation" class="level2" data-number="3.5">
+<h2 data-number="3.5" class="anchored" data-anchor-id="adds-spatial-and-temporal-trends-to-simulate-autocorrelation"><span class="header-section-number">3.5</span> Adds spatial and temporal trends to simulate autocorrelation</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># adding temporal and spatial trends</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>pikas_grid_trend <span class="ot">&lt;-</span> pikas_grid_id <span class="sc">%&gt;%</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># normalized trends</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">space_trend =</span> <span class="fu">sqrt</span>((x <span class="sc">-</span> <span class="fu">min</span>(x))<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> (y <span class="sc">-</span> <span class="fu">min</span>(y))<span class="sc">^</span><span class="dv">2</span>),</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">space_trend_scaled =</span> space_trend <span class="sc">/</span> <span class="fu">max</span>(space_trend),</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># adding random noise</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">space_trend_scaled =</span> space_trend_scaled <span class="sc">+</span> <span class="fu">rnorm</span>(<span class="fu">n</span>(), <span class="dv">0</span>, <span class="fl">0.1</span>),</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">time_trend =</span> <span class="fu">as.numeric</span>(<span class="fu">difftime</span>(date, <span class="fu">min</span>(date), <span class="at">units =</span> <span class="st">"weeks"</span>)) <span class="sc">+</span> <span class="fu">rnorm</span>(<span class="fu">n</span>(), <span class="dv">0</span>, <span class="fl">0.5</span>),</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">time_trend_scaled =</span> time_trend <span class="sc">/</span> <span class="fu">max</span>(time_trend),</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># stress concentration levels showing spatiotemporal autocorrelation</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">concentration_pg_g =</span> <span class="dv">1900</span> <span class="sc">+</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>      <span class="dv">1600</span> <span class="sc">*</span> space_trend_scaled<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span>       </span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>      <span class="dv">1000</span> <span class="sc">*</span> time_trend_scaled<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span>    </span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>        <span class="dv">20</span> <span class="sc">*</span> (space_trend_scaled <span class="sc">*</span> time_trend_scaled) <span class="sc">+</span> </span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>        <span class="co"># adding random noise</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>      <span class="fu">rnorm</span>(<span class="fu">n</span>(), <span class="dv">0</span>, <span class="dv">20</span>) </span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="final-steps" class="level2" data-number="3.6">
+<h2 data-number="3.6" class="anchored" data-anchor-id="final-steps"><span class="header-section-number">3.6</span> Final Steps</h2>
+<section id="convert-station-coordinates-to-spatialpoints-object" class="level3" data-number="3.6.1">
+<h3 data-number="3.6.1" class="anchored" data-anchor-id="convert-station-coordinates-to-spatialpoints-object"><span class="header-section-number">3.6.1</span> Convert station coordinates to <code>SpatialPoints</code> object</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># convert to spatial object</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">coordinates</span>(pikas_grid_trend) <span class="ot">&lt;-</span> <span class="er">~</span>x <span class="sc">+</span> y</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="fu">proj4string</span>(pikas_grid_trend) <span class="ot">&lt;-</span> <span class="fu">CRS</span>(<span class="st">"+proj=utm +zone=13 +datum=WGS84"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="convert-temporal-object-to-posixct" class="level3" data-number="3.6.2">
+<h3 data-number="3.6.2" class="anchored" data-anchor-id="convert-temporal-object-to-posixct"><span class="header-section-number">3.6.2</span> Convert temporal object to <code>POSIXct</code></h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># convert to date object</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>pikas_grid_trend<span class="sc">$</span>date <span class="ot">&lt;-</span> <span class="fu">as.POSIXct</span>(pikas_grid_trend<span class="sc">$</span>date)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="extract-spatial-temporal-and-data-components" class="level3" data-number="3.6.3">
+<h3 data-number="3.6.3" class="anchored" data-anchor-id="extract-spatial-temporal-and-data-components"><span class="header-section-number">3.6.3</span> Extract spatial, temporal and data components</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># create components </span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co"># sp object</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>pikas_sp <span class="ot">&lt;-</span> <span class="fu">SpatialPoints</span>(pikas_grid_trend<span class="sc">@</span>coords, <span class="at">proj4string =</span> <span class="fu">CRS</span>(<span class="st">"+proj=utm +zone=13 +datum=WGS84"</span>))</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co"># temporal vectors object</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>pikas_tm <span class="ot">&lt;-</span> pikas_grid_trend<span class="sc">$</span>date</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co"># df of only the outcome variable</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>pikas_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">concentration_pg_g =</span> pikas_grid_trend<span class="sc">$</span>concentration_pg_g)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="combine-using-stidfsp-time-data" class="level3" data-number="3.6.4">
+<h3 data-number="3.6.4" class="anchored" data-anchor-id="combine-using-stidfsp-time-data"><span class="header-section-number">3.6.4</span> Combine using <code>STIDF(sp, time, data)</code></h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># create STIDF</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>pikas_stobj <span class="ot">&lt;-</span> <span class="fu">STIDF</span>(pikas_sp, pikas_tm, pikas_df)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co"># stress concentration levels pg/g divided by 1000 (nanograms)</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>pikas_stobj<span class="sc">@</span>data<span class="sc">$</span>concentration_pg_g <span class="ot">&lt;-</span> (pikas_stobj<span class="sc">@</span>data<span class="sc">$</span>concentration_pg_g)<span class="sc">/</span><span class="dv">1000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+</section>
+<section id="computing-empirical-spatiotemporal-variogram" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Computing Empirical Spatiotemporal Variogram</h1>
+<div class="cell" data-execute="false">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># variogram of raw variable </span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>pikas_vv <span class="ot">&lt;-</span> <span class="fu">variogramST</span>(</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  concentration_pg_g <span class="sc">~</span> <span class="dv">1</span>,</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># STIDF data to use</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> pikas_stobj,</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="co">#spatial bins</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">width=</span><span class="dv">5000</span>,</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># time lags</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">tlags =</span> <span class="dv">0</span><span class="sc">:</span><span class="dv">5</span>,</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>  <span class="co"># time vector</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">tunit =</span> <span class="st">"weeks"</span>,</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># omit missing values</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">na.omit =</span> T</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="plotting-variogram-in-2d-and-3d" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="plotting-variogram-in-2d-and-3d"><span class="header-section-number">4.1</span> Plotting variogram in 2D and 3D</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># loading in sample variogram</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">load</span>(<span class="st">"pikas_vv.rda"</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">#2d variogram</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(pikas_vv, <span class="at">map =</span> T)  </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="rcode_demonstration_report_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">#3d variogram</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(pikas_vv, <span class="at">wireframe =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="rcode_demonstration_report_files/figure-html/unnamed-chunk-11-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<ul>
+<li>2D Variogram plot (lag map)
+<ul>
+<li>x-axis: spatial lag in meters</li>
+<li>y-axis: temporal lag in weeks</li>
+<li>color: semivariance</li>
+<li>lower (darker) values: strong autocorrelation</li>
+</ul></li>
+<li>3D Variogram plot (surface)
+<ul>
+<li>x-axis: spatial lag, y-axis: temporal lag</li>
+<li>z-axis: semivariance (height)</li>
+</ul></li>
+</ul>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><code>wireframe</code> in <code>lattice</code> package: <a href="https://stat.ethz.ch/R-manual/R-devel/library/lattice/html/cloud.html" class="uri">https://stat.ethz.ch/R-manual/R-devel/library/lattice/html/cloud.html</a></p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># formatting 3D plots using lattice package</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="fu">wireframe</span>(</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># formula and data</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    gamma <span class="sc">~</span> spacelag <span class="sc">*</span> timelag, </span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> <span class="fu">as.data.frame</span>(pikas_vv),</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># color specifies semivariance</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">drape =</span> T,</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">colorkey =</span> T,</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># visual formatting and angles</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">screen =</span> <span class="fu">list</span>(<span class="at">z =</span> <span class="dv">60</span>, <span class="at">x =</span> <span class="sc">-</span><span class="dv">60</span>),</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">par.settings =</span> <span class="fu">list</span>(</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>        <span class="at">regions =</span> <span class="fu">list</span>(<span class="at">col =</span> <span class="fu">heat.colors</span>(<span class="dv">100</span>)),</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.line =</span> <span class="fu">list</span>(<span class="at">col =</span> <span class="st">"transparent"</span>)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>    <span class="co"># plot labels</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">xlab =</span> <span class="st">"Spatial Lag (m)"</span>,</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">ylab =</span> <span class="st">"Temporal Lag (weeks)"</span>,</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">zlab =</span> <span class="st">"Semivariance"</span>,</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">main =</span> <span class="st">"Empirical Spatiotemporal Variogram Surface"</span></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="rcode_demonstration_report_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(plotly)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># plotly needs a complete rectangular matrix for the 3D variogram</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>pikas_plotly <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(pikas_vv) <span class="sc">%&gt;%</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(spacelag, timelag, gamma) <span class="sc">%&gt;%</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> spacelag, <span class="at">values_from =</span> gamma)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="co"># semivariance matrix</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>z_pikas <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(pikas_plotly[,<span class="sc">-</span><span class="dv">1</span>])    </span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="co"># temporal and spatial data separately</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>y_pikas <span class="ot">&lt;-</span> pikas_plotly<span class="sc">$</span>timelag                </span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>x_pikas <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">colnames</span>(pikas_plotly))    </span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ly</span>(</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> x_pikas,</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> y_pikas,</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">z =</span> z_pikas,</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>  <span class="co"># 3D surface variogram</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">type =</span> <span class="st">"surface"</span>,</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">colorscale =</span> <span class="st">"Viridis"</span>,</span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>  <span class="co"># presents information for each combination lag</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">hoverinfo =</span> <span class="st">"x+y+z"</span></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>    <span class="co"># labs</span></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">layout</span>(</span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Spatiotemporal Variogram Surface"</span>,</span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">scene =</span> <span class="fu">list</span>(</span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>      <span class="at">xaxis =</span> <span class="fu">list</span>(<span class="at">title =</span> <span class="st">"Spatial Lag (m)"</span>),</span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>      <span class="at">yaxis =</span> <span class="fu">list</span>(<span class="at">title =</span> <span class="st">"Temporal Lag (weeks)"</span>),</span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>      <span class="at">zaxis =</span> <span class="fu">list</span>(<span class="at">title =</span> <span class="st">"Semivariance"</span>)</span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div class="plotly html-widget html-fill-item" id="htmlwidget-0f4b1277a84b2509ff96" style="width:100%;height:464px;"></div>
+<script type="application/json" data-for="htmlwidget-0f4b1277a84b2509ff96">{"x":{"visdat":{"5d3f17bacf8c":["function () ","plotlyVisDat"]},"cur_data":"5d3f17bacf8c","attrs":{"5d3f17bacf8c":{"x":[null,2500,7500,12500,17500,22500,27500],"y":[0.5,1.5,2.5,3.5,4.5],"z":[[null,0.05452942637769765,0.17663557764401563,0.14259149670046936,0.2614994403199169,0.22296790327934868],[0.082508827070403912,0.10165109674202291,0.2072865243842541,0.17470722331037555,0.29269540533742994,0.25530186388411519],[0.18398013635497895,0.21584817406529735,0.21512707846879076,0.20363921538233529,0.2889658570571414,0.23975421456738893],[0.26256410562615112,0.33582001572397918,0.26158182581607797,0.2596475175497972,0.34200302169270397,0.17667686941166991],[0.29814207046546537,0.33134769714737899,0.20160613865738403,0.2561851421494889,0.45745507582879913,0.22744431290206801]],"colorscale":"Viridis","hoverinfo":"x+y+z","alpha_stroke":1,"sizes":[10,100],"spans":[1,20],"type":"surface"}},"layout":{"margin":{"b":40,"l":60,"t":25,"r":10},"title":"Spatiotemporal Variogram Surface","scene":{"xaxis":{"title":"Spatial Lag (m)"},"yaxis":{"title":"Temporal Lag (weeks)"},"zaxis":{"title":"Semivariance"}},"hovermode":"closest","showlegend":false,"legend":{"yanchor":"top","y":0.5}},"source":"A","config":{"modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false},"data":[{"colorbar":{"title":"","ticklen":2,"len":0.5,"lenmode":"fraction","y":1,"yanchor":"top"},"colorscale":"Viridis","showscale":true,"x":[null,2500,7500,12500,17500,22500,27500],"y":[0.5,1.5,2.5,3.5,4.5],"z":[[null,0.05452942637769765,0.17663557764401563,0.14259149670046936,0.2614994403199169,0.22296790327934868],[0.082508827070403912,0.10165109674202291,0.2072865243842541,0.17470722331037555,0.29269540533742994,0.25530186388411519],[0.18398013635497895,0.21584817406529735,0.21512707846879076,0.20363921538233529,0.2889658570571414,0.23975421456738893],[0.26256410562615112,0.33582001572397918,0.26158182581607797,0.2596475175497972,0.34200302169270397,0.17667686941166991],[0.29814207046546537,0.33134769714737899,0.20160613865738403,0.2561851421494889,0.45745507582879913,0.22744431290206801]],"hoverinfo":"x+y+z","type":"surface","frame":null}],"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.20000000000000001,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+</section>
+</section>
+<section id="fitting-spatiotemporal-variogram-models" class="level1 page-columns page-full" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Fitting Spatiotemporal Variogram Models</h1>
+<section id="separable---simple-stable-no-interaction-term" class="level2 page-columns page-full" data-number="5.1">
+<h2 data-number="5.1" class="anchored" data-anchor-id="separable---simple-stable-no-interaction-term"><span class="header-section-number">5.1</span> Separable - simple, stable, no interaction term</h2>
+
+<div class="no-row-height column-margin column-container"><section id="separable-semivariance-function" class="level5" data-number="5.1.0.0.1">
+<h5 data-number="5.1.0.0.1" class="anchored" data-anchor-id="separable-semivariance-function"><span class="header-section-number">5.1.0.0.1</span> Separable Semivariance Function</h5>
+<p><span class="math inline">\(\gamma(h, u) = \gamma_s(h) + \gamma_t(u) - \gamma_s(h)\gamma_t(u)\)</span></p>
+</section></div><div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># separable model</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>model_sep <span class="ot">&lt;-</span> <span class="fu">vgmST</span>(<span class="st">"separable"</span>,</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>                   <span class="at">space =</span> <span class="fu">vgm</span>(<span class="dv">1</span>, <span class="st">"Exp"</span>, <span class="dv">5000</span>, <span class="fl">0.1</span>),</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>                   <span class="at">time =</span> <span class="fu">vgm</span>(<span class="dv">1</span>, <span class="st">"Exp"</span>, <span class="dv">2</span>, <span class="fl">0.1</span>), <span class="at">sill =</span> <span class="dv">1</span>)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>fit_sep <span class="ot">&lt;-</span> <span class="fu">fit.StVariogram</span>(pikas_vv, model_sep, <span class="at">method =</span> <span class="st">"L-BFGS-B"</span>)</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>sep_rmse <span class="ot">&lt;-</span> <span class="fu">attr</span>(fit_sep, <span class="st">"optim"</span>)<span class="sc">$</span>value</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="metric---single-spatiotemporal-distance" class="level2 page-columns page-full" data-number="5.2">
+<h2 data-number="5.2" class="anchored" data-anchor-id="metric---single-spatiotemporal-distance"><span class="header-section-number">5.2</span> Metric - single spatiotemporal distance</h2>
+
+<div class="no-row-height column-margin column-container"><section id="metric-semivariance-function" class="level5" data-number="5.2.0.0.1">
+<h5 data-number="5.2.0.0.1" class="anchored" data-anchor-id="metric-semivariance-function"><span class="header-section-number">5.2.0.0.1</span> Metric Semivariance Function</h5>
+<p><span class="math inline">\(\gamma(h, u) = \gamma_{st}\left( \sqrt{h^2 + (\alpha u)^2} \right)\)</span></p>
+</section></div><div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># metric models</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>model_metric <span class="ot">&lt;-</span> <span class="fu">vgmST</span>(<span class="st">"metric"</span>,</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>                      <span class="at">joint =</span> <span class="fu">vgm</span>(<span class="dv">1</span>, <span class="st">"Exp"</span>, <span class="dv">5000</span>, <span class="fl">0.1</span>),</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>                      <span class="at">stAni =</span><span class="dv">1000</span>)</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>fit_metric <span class="ot">&lt;-</span> <span class="fu">fit.StVariogram</span>(pikas_vv, model_metric)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>met_rmse <span class="ot">&lt;-</span> <span class="fu">attr</span>(fit_metric, <span class="st">"optim"</span>)<span class="sc">$</span>value</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="product-sum---space-time-and-a-cross-term" class="level2 page-columns page-full" data-number="5.3">
+<h2 data-number="5.3" class="anchored" data-anchor-id="product-sum---space-time-and-a-cross-term"><span class="header-section-number">5.3</span> Product Sum - space, time and a cross term</h2>
+
+<div class="no-row-height column-margin column-container"><section id="productsum-semivariance-function" class="level5" data-number="5.3.0.0.1">
+<h5 data-number="5.3.0.0.1" class="anchored" data-anchor-id="productsum-semivariance-function"><span class="header-section-number">5.3.0.0.1</span> <code>productSum</code> Semivariance Function</h5>
+<p><span class="math inline">\(\gamma(h, u) = \gamma_s(h) + \gamma_t(u) + k \cdot \gamma_s(h)\gamma_t(u)\)</span></p>
+</section></div><div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># product sum model</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>model_prod <span class="ot">&lt;-</span> <span class="fu">vgmST</span>(<span class="st">"productSum"</span>,</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>                    <span class="at">space =</span> <span class="fu">vgm</span>(<span class="dv">1</span>, <span class="st">"Exp"</span>, <span class="dv">5000</span>, <span class="fl">0.1</span>),</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>                    <span class="at">time =</span> <span class="fu">vgm</span>(<span class="dv">1</span>, <span class="st">"Exp"</span>, <span class="dv">2</span>, <span class="fl">0.1</span>),</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>                    <span class="at">k =</span> <span class="fl">0.5</span>)</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>fit_prod <span class="ot">&lt;-</span> <span class="fu">fit.StVariogram</span>(pikas_vv, model_prod)</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>prod_rmse <span class="ot">&lt;-</span> <span class="fu">attr</span>(fit_prod, <span class="st">"optim"</span>)<span class="sc">$</span>value</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="summetric---space-time-and-joint-functions" class="level2 page-columns page-full" data-number="5.4">
+<h2 data-number="5.4" class="anchored" data-anchor-id="summetric---space-time-and-joint-functions"><span class="header-section-number">5.4</span> sumMetric - space, time and joint functions</h2>
+
+<div class="no-row-height column-margin column-container"><section id="summetric-semivariance-function" class="level5" data-number="5.4.0.0.1">
+<h5 data-number="5.4.0.0.1" class="anchored" data-anchor-id="summetric-semivariance-function"><span class="header-section-number">5.4.0.0.1</span> <code>sumMetric</code> Semivariance Function</h5>
+<p><span class="math inline">\(\gamma(h, u) = \gamma_s(h) + \gamma_t(u) + \gamma_{st}\left( \sqrt{h^2 + (\alpha u)^2} \right)\)</span></p>
+</section></div><div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># sum metric model</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>model_sumMetric <span class="ot">&lt;-</span> <span class="fu">vgmST</span>(<span class="st">"sumMetric"</span>,</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>                         <span class="at">space =</span> <span class="fu">vgm</span>(<span class="dv">1</span>, <span class="st">"Exp"</span>, <span class="dv">5000</span>, <span class="fl">0.1</span>),</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>                         <span class="at">time =</span> <span class="fu">vgm</span>(<span class="dv">1</span>, <span class="st">"Exp"</span>, <span class="dv">2</span>, <span class="fl">0.1</span>),</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>                         <span class="at">joint =</span> <span class="fu">vgm</span>(<span class="dv">1</span>, <span class="st">"Exp"</span>, <span class="dv">5000</span>, <span class="fl">0.1</span>),</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>                         <span class="at">stAni =</span> <span class="dv">1000</span>)</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>fit_sumMetric <span class="ot">&lt;-</span> <span class="fu">fit.StVariogram</span>(pikas_vv, model_sumMetric)</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>summ_rmse <span class="ot">&lt;-</span> <span class="fu">attr</span>(fit_sumMetric, <span class="st">"optim"</span>)<span class="sc">$</span>value</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="simplesummetric---simplified-summetric" class="level2 page-columns page-full" data-number="5.5">
+<h2 data-number="5.5" class="anchored" data-anchor-id="simplesummetric---simplified-summetric"><span class="header-section-number">5.5</span> simpleSumMetric - simplified sumMetric</h2>
+
+<div class="no-row-height column-margin column-container"><section id="simplesummetric-semivariance-function" class="level5" data-number="5.5.0.0.1">
+<h5 data-number="5.5.0.0.1" class="anchored" data-anchor-id="simplesummetric-semivariance-function"><span class="header-section-number">5.5.0.0.1</span> <code>simpleSumMetric</code> Semivariance Function</h5>
+<p><span class="math inline">\(\gamma(h, u) = \gamma_s(h) + \gamma_t(u) + \gamma\left( \sqrt{h^2 + (\alpha u)^2} \right)\)</span></p>
+</section></div><div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># simple sum metric model</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>model_simple <span class="ot">&lt;-</span> <span class="fu">vgmST</span>(<span class="st">"simpleSumMetric"</span>,</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>                      <span class="at">space =</span> <span class="fu">vgm</span>(<span class="dv">1</span>, <span class="st">"Exp"</span>, <span class="dv">5000</span>, <span class="fl">0.1</span>),</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>                      <span class="at">time =</span> <span class="fu">vgm</span>(<span class="dv">1</span>, <span class="st">"Exp"</span>, <span class="dv">2</span>, <span class="fl">0.1</span>),</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>                      <span class="at">joint =</span> <span class="fu">vgm</span>(<span class="dv">1</span>, <span class="st">"Exp"</span>, <span class="dv">5000</span>, <span class="fl">0.1</span>),</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>                      <span class="at">nugget =</span> <span class="fl">0.05</span>,</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>                      <span class="at">stAni =</span> <span class="dv">1000</span>)</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>fit_simple <span class="ot">&lt;-</span> <span class="fu">fit.StVariogram</span>(pikas_vv, model_simple)</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>sim_rmse <span class="ot">&lt;-</span> <span class="fu">attr</span>(fit_simple, <span class="st">"optim"</span>)<span class="sc">$</span>value</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="comparing-different-variograms" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> Comparing different variograms</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># plotting 3D plots side by side</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(pikas_vv, <span class="fu">list</span>(fit_sep, fit_metric, fit_prod, fit_sumMetric, fit_simple), </span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>     <span class="at">full =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>     <span class="at">wireframe =</span> T, <span class="at">zlim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.3</span>),</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>     <span class="at">zlab =</span> <span class="cn">NULL</span>, <span class="at">xlab =</span> <span class="fu">list</span>(<span class="st">"distance (m)"</span>, <span class="at">rot =</span> <span class="fu">c</span>(<span class="dv">30</span>, <span class="dv">0</span>), <span class="at">cex =</span> <span class="fl">0.9</span>),</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>     <span class="at">ylab =</span> <span class="fu">list</span>(<span class="st">"time lag (weeks)"</span>, <span class="at">rot =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">30</span>, <span class="dv">0</span>), <span class="at">cex =</span> <span class="fl">0.9</span>),</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>     <span class="at">scales =</span> <span class="fu">list</span>(</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">arrows =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="fu">list</span>(<span class="at">distance =</span> <span class="dv">1</span>, <span class="at">cex =</span> <span class="fl">0.7</span>),</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="fu">list</span>(<span class="at">distance =</span> <span class="dv">1</span>, <span class="at">cex =</span> <span class="fl">0.7</span>),</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">z =</span> <span class="fu">list</span>(<span class="at">distance =</span> <span class="dv">3</span>, <span class="at">cex =</span> <span class="fl">0.7</span>)</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>  ))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="rcode_demonstration_report_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid figure-img" width="1152"></p>
+</figure>
+</div>
+</div>
+</div>
+<section id="model-results" class="level3" data-number="6.0.1">
+<h3 data-number="6.0.1" class="anchored" data-anchor-id="model-results"><span class="header-section-number">6.0.1</span> Model Results</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Variogram Model</th>
+<th>RMSE</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Separable</td>
+<td>0.0052459</td>
+</tr>
+<tr class="even">
+<td>Metric</td>
+<td>0.0060165</td>
+</tr>
+<tr class="odd">
+<td>Product Sum</td>
+<td>0.0040033</td>
+</tr>
+<tr class="even">
+<td>Sum Metric</td>
+<td>0.0037811</td>
+</tr>
+<tr class="odd">
+<td>Simple Sum Metric</td>
+<td>0.003781</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
